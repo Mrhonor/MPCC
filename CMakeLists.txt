@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
-project(MPCC)
+project(mpcc)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-O2")
@@ -29,7 +29,7 @@ include_directories(External/Json/include)
 include_directories(${catkin_INCLUDE_DIRS})
 
 
-add_executable(MPCC
+add_executable(mpcc
         main.cpp
         types.cpp
         types.h
@@ -53,12 +53,12 @@ add_executable(MPCC
         Params/track.h
         Plotting/plotting.cpp
         Plotting/plotting.h)
-add_dependencies(MPCC ${${PROJECT_NAME}_EXPORTTED_TARGETS}
+add_dependencies(mpcc ${${PROJECT_NAME}_EXPORTTED_TARGETS}
 ${catkin_EXPORTED_TARGETS}
 )
 
 find_package(Python COMPONENTS Development)
-target_include_directories(MPCC PRIVATE ${Python_INCLUDE_DIRS} ${catkin_LIBRARIES})
-target_link_libraries(MPCC ${Python_LIBRARIES} ${catkin_LIBRARIES})
+target_include_directories(mpcc PRIVATE ${Python_INCLUDE_DIRS} ${catkin_LIBRARIES})
+target_link_libraries(mpcc ${Python_LIBRARIES} ${catkin_LIBRARIES})
 
-target_link_libraries(MPCC ${CMAKE_SOURCE_DIR}/MPCC/External/hpipm/lib/lib/libhpipm.a ${CMAKE_SOURCE_DIR}/MPCC/External/blasfeo/lib/lib/libblasfeo.a m)
+target_link_libraries(mpcc ${CMAKE_SOURCE_DIR}/MPCC/External/hpipm/lib/lib/libhpipm.a ${CMAKE_SOURCE_DIR}/MPCC/External/blasfeo/lib/lib/libblasfeo.a m)
