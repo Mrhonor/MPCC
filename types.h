@@ -27,9 +27,9 @@ struct State{
     double vy;  // 车辆沿垂直经线方向速度
     double r;   // 角速度
     double s;   // 参数化轨迹弧长
-    double D;   // 应该是马达的占空比
+    double D;   // 油门刹车
     double delta;  // 前车轮角度
-    double vs;     // 投影到轨迹线上的角度
+    double vs;     // 投影到轨迹线上的速度
 
     void setZero()
     {

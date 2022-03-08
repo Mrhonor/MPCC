@@ -2,6 +2,8 @@
 #define __MPCC_ROS__
 
 #include "ros/ros.h"
+#include "std_msgs/float64MultiArray.h"
+
 #include "MPC/mpc.h"
 #include "Model/integrator.h"
 #include "Params/track.h"
@@ -26,8 +28,12 @@ private:
     ros::Publisher control_pub;
 
 public:
-    MpccRos(json JsonConfig);
+    MpccRos(ros::NodeHandle &n, json JsonConfig);
     ~MpccRos();
+
+private:
+    void ekfStateCallback(const std_msgs::float64MultiArrayConstPtr& msg);
+
 }
 
 #endif // __MPCC_ROS__
