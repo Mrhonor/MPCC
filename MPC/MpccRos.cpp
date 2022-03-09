@@ -1,15 +1,15 @@
 #include "MPC/MpccRos.h"
 #include <vector>
-
-MpccRos::MpccRos(ros::NodeHandle &n, json JsonConfig):
-jsonPath(jsonConfig["model_path"],
+namespace mpcc{
+MpccRos::MpccRos(ros::NodeHandle &n, json jsonConfig):
+jsonPath{jsonConfig["model_path"],
 jsonConfig["cost_path"],
 jsonConfig["bounds_path"],
 jsonConfig["track_path"],
-jsonConfig["normalization_path"]),
+jsonConfig["normalization_path"]},
 integrator(jsonConfig["Ts"],jsonPath),
 plotter(jsonConfig["Ts"],jsonPath),
-mpc(jsonConfig["n_sqp"],jsonConfig["n_reset"],jsonConfig["sqp_mixing"],jsonConfig["Ts"],json_paths)
+mpc(jsonConfig["n_sqp"],jsonConfig["n_reset"],jsonConfig["sqp_mixing"],jsonConfig["Ts"],jsonPath)
 {
     isSetTrack = false;
 
@@ -29,7 +29,7 @@ void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
     // Eigen::Quaterniod q(msg->data[2], msg->data[3],
     //                     msg->data[4], msg->data[4]);
     // x0.phi = q.matrix().eulerAngle(2,1,0)[2];
-    x0.phi = msg->data[2]
+    x0.phi = msg->data[2];
     x0.vx = msg->data[3];
     x0.vy = msg->data[4];
     x0.r = msg->data[5];
@@ -47,10 +47,11 @@ void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
         control_msg.data.push_back(mpc_sol.u0.dD);
         control_msg.data.push_back(mpc_sol.u0.dDelta);
         control_msg.data.push_back(mpc_sol.u0.dVs);
-        if(TempSimuEnd < 9999){
+        if(TempSimuEnd < 2999){
             control_pub.publish(control_msg);
         }
         else{
+            TrackPos track_xy = cur_track.getTrack();
             plotter.plotSim(log,track_xy);
             isSetTrack = false;
         }
@@ -60,8 +61,7 @@ void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
 
 
 void MpccRos::refPathCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
-    Track cur_track;
-    int i 
+
     if(msg->layout.dim[0].label == "X" && msg->layout.dim[1].label == "Y"
     && msg->layout.dim[2].label == "Xin" && msg->layout.dim[3].label == "Yin"
     && msg->layout.dim[4].label == "Xout" && msg->layout.dim[5].label == "Yout"){
@@ -89,19 +89,20 @@ void MpccRos::refPathCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
         for(; index-x_size-y_size-xin_size-yin_size-xout_size < yout_size; index++){
             Yout.push_back(msg->data[index]);
         }
-        cur_track.X = Eigen::map<Eigen::VectorXd>(X.data(), X.size());
-        cur_track.Y = Eigen::map<Eigen::VectorXd>(Y.data(), Y.size());
-        cur_track.Xin = Eigen::map<Eigen::VectorXd>(Xin.data(), Xin.size());
-        cur_track.Yin = Eigen::map<Eigen::VectorXd>(Yin.data(), Yin.size());
-        cur_track.Xout = Eigen::map<Eigen::VectorXd>(Xout.data(), Xout.size());
-        cur_track.Yout = Eigen::map<Eigen::VectorXd>(Yout.data(), Yout.size());
-        track_xy = cur_track.getTrack();
+        cur_track.X = Eigen::Map<Eigen::VectorXd>(X.data(), X.size());
+        cur_track.Y = Eigen::Map<Eigen::VectorXd>(Y.data(), Y.size());
+        cur_track.X_inner = Eigen::Map<Eigen::VectorXd>(Xin.data(), Xin.size());
+        cur_track.Y_inner = Eigen::Map<Eigen::VectorXd>(Yin.data(), Yin.size());
+        cur_track.X_outer = Eigen::Map<Eigen::VectorXd>(Xout.data(), Xout.size());
+        cur_track.Y_outer = Eigen::Map<Eigen::VectorXd>(Yout.data(), Yout.size());
+        TrackPos track_xy = cur_track.getTrack();
         mpc.setTrack(track_xy.X,track_xy.Y);
         isSetTrack = true;
     }
     else{
-        ROS::ERROR("Reference Path dones't accord with the protocol!");
+        ROS_ERROR("Reference Path dones't accord with the protocol!");
         return;
     }
     
+}
 }

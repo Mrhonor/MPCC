@@ -28,7 +28,7 @@ namespace mpcc {
 //used namespace
 using json = nlohmann::json;
 
-struct TrackPos {
+typedef struct TrackPos {
     const Eigen::VectorXd X;
     const Eigen::VectorXd Y;
 
@@ -37,14 +37,16 @@ struct TrackPos {
 
     const Eigen::VectorXd X_outer;
     const Eigen::VectorXd Y_outer;
-};
+
+    
+}TrackPos;
 
 class Track {
 public:
+    Track(){}
     Track(std::string file);
     TrackPos getTrack();
 
-private:
     Eigen::VectorXd X;
     Eigen::VectorXd Y;
 

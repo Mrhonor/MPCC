@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+namespace mpcc{
 class MpccRos
 {
 private:
@@ -22,7 +23,7 @@ private:
     std::list<MPCReturn> log;
 
     bool isSetTrack;
-    TrackPos track_xy;
+    Track cur_track;
 
     // ros
     ros::Subscriber ekf_state_sub; // 状态向量订阅
@@ -33,7 +34,7 @@ private:
     
 public:
     MpccRos(ros::NodeHandle &n, json JsonConfig);
-    ~MpccRos();
+    ~MpccRos(){}
 
 private:
     // 状态回调函数
@@ -42,6 +43,7 @@ private:
     // reference path 回调函数
     void refPathCallback(const std_msgs::Float64MultiArrayConstPtr& msg);
 
+};
 }
 
 #endif // __MPCC_ROS__
