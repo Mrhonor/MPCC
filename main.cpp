@@ -25,6 +25,7 @@
 #include "Plotting/plotting.h"
 
 #include "ros/ros.h"
+#include "MPC/MpccRos.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -41,55 +42,62 @@ int main(int argc, char **argv) {
     json jsonConfig;
     iConfig >> jsonConfig;
 
-    // track_path: x_i is the inner line of track, and x_o is the outer.
-    PathToJson json_paths {jsonConfig["model_path"],
-                           jsonConfig["cost_path"],
-                           jsonConfig["bounds_path"],
-                           jsonConfig["track_path"],
-                           jsonConfig["normalization_path"]};
+    MpccRos mpccRosCore(n, jsonConfig);
+    
+    ros::AsyncSpinner spinner(2);
+    spinner.start();
+    ros::waitForShutdown();
 
-    // std::cout << testSpline() << std::endl;
-    // std::cout << testArcLengthSpline(json_paths) << std::endl;
 
-    // std::cout << testIntegrator(json_paths) << std::endl;
-    // std::cout << testLinModel(json_paths) << std::endl;
+    // // track_path: x_i is the inner line of track, and x_o is the outer.
+    // PathToJson json_paths {jsonConfig["model_path"],
+    //                        jsonConfig["cost_path"],
+    //                        jsonConfig["bounds_path"],
+    //                        jsonConfig["track_path"],
+    //                        jsonConfig["normalization_path"]};
 
-    // std::cout << testAlphaConstraint(json_paths) << std::endl;
-    // std::cout << testTireForceConstraint(json_paths) << std::endl;
-    // std::cout << testTrackConstraint(json_paths) << std::endl;
+    // // std::cout << testSpline() << std::endl;
+    // // std::cout << testArcLengthSpline(json_paths) << std::endl;
 
-    // std::cout << testCost(json_paths) << std::endl;
+    // // std::cout << testIntegrator(json_paths) << std::endl;
+    // // std::cout << testLinModel(json_paths) << std::endl;
 
-    Integrator integrator = Integrator(jsonConfig["Ts"],json_paths);
-    Plotting plotter = Plotting(jsonConfig["Ts"],json_paths);
+    // // std::cout << testAlphaConstraint(json_paths) << std::endl;
+    // // std::cout << testTireForceConstraint(json_paths) << std::endl;
+    // // std::cout << testTrackConstraint(json_paths) << std::endl;
 
-    Track track = Track(json_paths.track_path);
-    TrackPos track_xy = track.getTrack();
+    // // std::cout << testCost(json_paths) << std::endl;
 
-    std::list<MPCReturn> log;
-    MPC mpc(jsonConfig["n_sqp"],jsonConfig["n_reset"],jsonConfig["sqp_mixing"],jsonConfig["Ts"],json_paths);
-    mpc.setTrack(track_xy.X,track_xy.Y);
-    const double phi_0 = std::atan2(track_xy.Y(1) - track_xy.Y(0),track_xy.X(1) - track_xy.X(0));
-    State x0 = {track_xy.X(0),track_xy.Y(0),phi_0,jsonConfig["v0"],0,0,0,0.5,0,jsonConfig["v0"]};
-    for(int i=0;i<jsonConfig["n_sim"];i++)
-    {
-        MPCReturn mpc_sol = mpc.runMPC(x0);
-        x0 = integrator.simTimeStep(x0,mpc_sol.u0,jsonConfig["Ts"]);
-        log.push_back(mpc_sol);
-    }
-    // plotter.plotRun(log,track_xy);
-    plotter.plotSim(log,track_xy);
+    // Integrator integrator = Integrator(jsonConfig["Ts"],json_paths);
+    // Plotting plotter = Plotting(jsonConfig["Ts"],json_paths);
 
-    double mean_time = 0.0;
-    double max_time = 0.0;
-    for(MPCReturn log_i : log)
-    {
-        mean_time += log_i.time_total;
-        if(log_i.time_total > max_time)
-            max_time = log_i.time_total;
-    }
-    std::cout << "mean nmpc time " << mean_time/double(jsonConfig["n_sim"]) << std::endl;
-    std::cout << "max nmpc time " << max_time << std::endl;
+    // Track track = Track(json_paths.track_path);
+    // TrackPos track_xy = track.getTrack();
+
+    // std::list<MPCReturn> log;
+    // MPC mpc(jsonConfig["n_sqp"],jsonConfig["n_reset"],jsonConfig["sqp_mixing"],jsonConfig["Ts"],json_paths);
+    // mpc.setTrack(track_xy.X,track_xy.Y);
+    // const double phi_0 = std::atan2(track_xy.Y(1) - track_xy.Y(0),track_xy.X(1) - track_xy.X(0));
+    // State x0 = {track_xy.X(0),track_xy.Y(0),phi_0,jsonConfig["v0"],0,0,0,0.5,0,jsonConfig["v0"]};
+    // for(int i=0;i<jsonConfig["n_sim"];i++)
+    // {
+    //     MPCReturn mpc_sol = mpc.runMPC(x0);
+    //     x0 = integrator.simTimeStep(x0,mpc_sol.u0,jsonConfig["Ts"]);
+    //     log.push_back(mpc_sol);
+    // }
+    // // plotter.plotRun(log,track_xy);
+    // plotter.plotSim(log,track_xy);
+
+    // double mean_time = 0.0;
+    // double max_time = 0.0;
+    // for(MPCReturn log_i : log)
+    // {
+    //     mean_time += log_i.time_total;
+    //     if(log_i.time_total > max_time)
+    //         max_time = log_i.time_total;
+    // }
+    // std::cout << "mean nmpc time " << mean_time/double(jsonConfig["n_sim"]) << std::endl;
+    // std::cout << "max nmpc time " << max_time << std::endl;
     return 0;
 }
 

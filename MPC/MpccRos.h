@@ -2,7 +2,7 @@
 #define __MPCC_ROS__
 
 #include "ros/ros.h"
-#include "std_msgs/float64MultiArray.h"
+#include "std_msgs/Float64MultiArray.h"
 
 #include "MPC/mpc.h"
 #include "Model/integrator.h"
@@ -21,18 +21,26 @@ private:
     MPC mpc;
     std::list<MPCReturn> log;
 
+    bool isSetTrack;
+    TrackPos track_xy;
+
     // ros
-    ros::Subscriber ekf_state_sub;
-    ros::Subscriber ref_path_sub;
+    ros::Subscriber ekf_state_sub; // 状态向量订阅
+    ros::Subscriber ref_path_sub;  // 参照路径订阅
 
-    ros::Publisher control_pub;
+    ros::Publisher control_pub;    // 控制向量输出
 
+    
 public:
     MpccRos(ros::NodeHandle &n, json JsonConfig);
     ~MpccRos();
 
 private:
-    void ekfStateCallback(const std_msgs::float64MultiArrayConstPtr& msg);
+    // 状态回调函数
+    void ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg);
+
+    // reference path 回调函数
+    void refPathCallback(const std_msgs::Float64MultiArrayConstPtr& msg);
 
 }
 

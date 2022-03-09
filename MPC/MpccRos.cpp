@@ -1,4 +1,5 @@
 #include "MPC/MpccRos.h"
+#include <vector>
 
 MpccRos::MpccRos(ros::NodeHandle &n, json JsonConfig):
 jsonPath(jsonConfig["model_path"],
@@ -10,46 +11,97 @@ integrator(jsonConfig["Ts"],jsonPath),
 plotter(jsonConfig["Ts"],jsonPath),
 mpc(jsonConfig["n_sqp"],jsonConfig["n_reset"],jsonConfig["sqp_mixing"],jsonConfig["Ts"],json_paths)
 {
+    isSetTrack = false;
+
     ekf_state_sub = n.subscribe("/EKF/State", 10, &MpccRos::ekfStateCallback, this);
+    ref_path_sub = n.subscribe("/RefPath", 10, &MpccRos::refPathCallback, this);
 
-    Track track = Track(jsonPath.track_path);
-    TrackPos track_xy = track.getTrack();
+    control_pub = n.advertise<std_msgs::Float64MultiArray>("/MPCC/Control", 10);
+    
 
 
-    mpc.setTrack(track_xy.X,track_xy.Y);
-    const double phi_0 = std::atan2(track_xy.Y(1) - track_xy.Y(0),track_xy.X(1) - track_xy.X(0));
-    State x0 = {track_xy.X(0),track_xy.Y(0),phi_0,jsonConfig["v0"],0,0,0,0.5,0,jsonConfig["v0"]};
-    for(int i=0;i<jsonConfig["n_sim"];i++)
-    {
-        MPCReturn mpc_sol = mpc.runMPC(x0);
-        x0 = integrator.simTimeStep(x0,mpc_sol.u0,jsonConfig["Ts"]);
-        log.push_back(mpc_sol);
-    }
-    // plotter.plotRun(log,track_xy);
-    plotter.plotSim(log,track_xy);
-
-    double mean_time = 0.0;
-    double max_time = 0.0;
-    for(MPCReturn log_i : log)
-    {
-        mean_time += log_i.time_total;
-        if(log_i.time_total > max_time)
-            max_time = log_i.time_total;
-    }
-    std::cout << "mean nmpc time " << mean_time/double(jsonConfig["n_sim"]) << std::endl;
-    std::cout << "max nmpc time " << max_time << std::endl;
 }
 
-void MpccRos::ekfStateCallback(const std_msgs::float64MultiArrayConstPtr& msg){
+void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
     State x0;
-    x0.X = msg->pose.pose.position.x;
-    x0.Y = msg->pose.pose.position.y;
-    Eigen::Quaterniod q(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
-                        msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
-    x0.phi = q.matrix().eulerAngle(2,1,0)[2];
-    x0.vx = msg->twist.twist.linear.x;
-    x0.vy = msg->twist.twist.linear.y;
-    x0.r = msg->twist.twist.angular.z;
+    x0.X = msg->data[0];
+    x0.Y = msg->data[1];
+    // Eigen::Quaterniod q(msg->data[2], msg->data[3],
+    //                     msg->data[4], msg->data[4]);
+    // x0.phi = q.matrix().eulerAngle(2,1,0)[2];
+    x0.phi = msg->data[2]
+    x0.vx = msg->data[3];
+    x0.vy = msg->data[4];
+    x0.r = msg->data[5];
+    x0.D = msg->data[6];
+    x0.delta = msg->data[7];
+    x0.vs = msg->data[8];
+
+    // 临时使用，通知仿真结束
+    double TempSimuEnd = msg->data[9];
+
+    if(isSetTrack){
+        MPCReturn mpc_sol = mpc.runMPC(x0);
+        log.push_back(mpc_sol);
+        std_msgs::Float64MultiArray control_msg;
+        control_msg.data.push_back(mpc_sol.u0.dD);
+        control_msg.data.push_back(mpc_sol.u0.dDelta);
+        control_msg.data.push_back(mpc_sol.u0.dVs);
+        if(TempSimuEnd < 9999){
+            control_pub.publish(control_msg);
+        }
+        else{
+            plotter.plotSim(log,track_xy);
+            isSetTrack = false;
+        }
+        
+    }
+}
 
 
+void MpccRos::refPathCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
+    Track cur_track;
+    int i 
+    if(msg->layout.dim[0].label == "X" && msg->layout.dim[1].label == "Y"
+    && msg->layout.dim[2].label == "Xin" && msg->layout.dim[3].label == "Yin"
+    && msg->layout.dim[4].label == "Xout" && msg->layout.dim[5].label == "Yout"){
+        int x_size = msg->layout.dim[0].size, y_size = msg->layout.dim[1].size,
+        xin_size = msg->layout.dim[2].size, yin_size = msg->layout.dim[3].size,
+        xout_size = msg->layout.dim[4].size, yout_size = msg->layout.dim[5].size;
+        std::vector<double> X,Y,Xin,Yin,Xout,Yout;
+        int index=0;
+        for(; index < x_size; index++){
+            X.push_back(msg->data[index]);
+            
+        }
+        for(; index-x_size < y_size; index++){
+            Y.push_back(msg->data[index]);
+        }
+        for(; index-x_size-y_size < xin_size; index++){
+            Xin.push_back(msg->data[index]);
+        }
+        for(; index-x_size-y_size-xin_size < yin_size; index++){
+            Yin.push_back(msg->data[index]);
+        }
+        for(; index-x_size-y_size-xin_size-yin_size < xout_size; index++){
+            Xout.push_back(msg->data[index]);
+        }
+        for(; index-x_size-y_size-xin_size-yin_size-xout_size < yout_size; index++){
+            Yout.push_back(msg->data[index]);
+        }
+        cur_track.X = Eigen::map<Eigen::VectorXd>(X.data(), X.size());
+        cur_track.Y = Eigen::map<Eigen::VectorXd>(Y.data(), Y.size());
+        cur_track.Xin = Eigen::map<Eigen::VectorXd>(Xin.data(), Xin.size());
+        cur_track.Yin = Eigen::map<Eigen::VectorXd>(Yin.data(), Yin.size());
+        cur_track.Xout = Eigen::map<Eigen::VectorXd>(Xout.data(), Xout.size());
+        cur_track.Yout = Eigen::map<Eigen::VectorXd>(Yout.data(), Yout.size());
+        track_xy = cur_track.getTrack();
+        mpc.setTrack(track_xy.X,track_xy.Y);
+        isSetTrack = true;
+    }
+    else{
+        ROS::ERROR("Reference Path dones't accord with the protocol!");
+        return;
+    }
+    
 }

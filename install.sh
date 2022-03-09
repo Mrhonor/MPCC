@@ -29,11 +29,11 @@ set -e
 # repository_matplotlib="https://github.com/lava/matplotlib-cpp.git"
 # localFolder_matplotlib="External/matplotlib"
 # git clone "$repository_matplotlib" "$localFolder_matplotlib"
-# ## clone eigne
-# repository_eigen="https://gitlab.com/libeigen/eigen.git"
-# localFolder_eigen="External/Eigen"
-# git clone "$repository_eigen" "$localFolder_eigen"
-## clone json
+## clone eigne
+repository_eigen="https://gitlab.com/libeigen/eigen.git"
+localFolder_eigen="External/Eigen"
+git clone "$repository_eigen" "$localFolder_eigen"
+# clone json
 repository_json="https://github.com/nlohmann/json.git"
 localFolder_json="External/Json"
 git clone "$repository_json" "$localFolder_json"

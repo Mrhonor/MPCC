@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 project(mpcc)
 
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-O2")
 
@@ -52,7 +53,8 @@ add_executable(mpcc
         Params/track.cpp
         Params/track.h
         Plotting/plotting.cpp
-        Plotting/plotting.h)
+        Plotting/plotting.h
+        MPC/MpccRos.cpp)
 add_dependencies(mpcc ${${PROJECT_NAME}_EXPORTTED_TARGETS}
 ${catkin_EXPORTED_TARGETS}
 )
