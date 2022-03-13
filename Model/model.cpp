@@ -385,7 +385,7 @@ LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) 
     A_MPC A_c = A_MPC::Zero();
     B_MPC B_c = B_MPC::Zero();
     g_MPC g_c = g_MPC::Zero();
-    
+
     const StateVector f = getF(x,u);
 
     const double F_x = param_.Cm1*D - param_.Cm2*D*vx;
@@ -461,5 +461,6 @@ LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) 
     //zero order term
     g_c = f - A_c*stateToVector(x) - B_c*inputToVector(u);
 
+    return {A_c,B_c,g_c};
 }
 }
