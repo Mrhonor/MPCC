@@ -33,7 +33,7 @@ bounds_(BoundsParam(path.bounds_path)),
 constraints_(Constraints(Ts,path)),
 cost_(Cost(path)),
 integrator_(Integrator(Ts,path)),
-model_(Model(Ts,path)),
+model_(KinematicModel(Ts,path)),
 track_(ArcLengthSpline(path))
 {
     n_sqp_ = n_sqp;

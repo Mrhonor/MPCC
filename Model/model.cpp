@@ -184,6 +184,7 @@ LinModelMatrix Model::getModelJacobian(const State &x, const Input &u) const
     B_MPC B_c = B_MPC::Zero();
     g_MPC g_c = g_MPC::Zero();
 
+    
     const StateVector f = getF(x,u);
 
     const TireForces F_front = getForceFront(x);
@@ -330,5 +331,135 @@ LinModelMatrix Model::getLinModel(const State &x, const Input &u) const
     const LinModelMatrix lin_model_c = getModelJacobian(x,u);
     // discretize the system
     return discretizeModel(lin_model_c);
+}
+
+KinematicModel::KinematicModel():Model(){
+
+}
+
+KinematicModel::KinematicModel(double Ts,const PathToJson &path):Model(Ts, path){
+
+}
+
+StateVector KinematicModel::getF(const State &x,const Input &u) const{
+    const double phi = x.phi;
+    const double vx = x.vx;
+    const double vy = x.vy;
+    const double r  = x.r;
+    const double D = x.D;
+    const double delta = x.delta;
+    const double vs = x.vs;
+
+    const double dD = u.dD;
+    const double dDelta = u.dDelta;
+    const double dVs = u.dVs;
+
+    const double F_x = param_.Cm1*D - param_.Cm2*D*vx;
+
+    StateVector f;
+    f(0) = vx*std::cos(phi) - vy*std::sin(phi);
+    f(1) = vy*std::cos(phi) + vx*std::sin(phi);
+    f(2) = r;
+    f(3) = F_x / param_.m;
+    f(4) = (dDelta*vx + delta * f(3))*(param_.lr / (param_.lf + param_.lr));
+    f(5) = (dDelta*vx + delta * f(3))*(1 / (param_.lf + param_.lr));
+    f(6) = vs;
+    f(7) = dD;
+    f(8) = dDelta;
+    f(9) = dVs;
+
+    return f;
+}
+
+LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) const{
+    // compute jacobian of the model
+    // state values
+    const double phi = x.phi;
+    const double vx = x.vx;
+    const double vy = x.vy;
+    const double r  = x.r;
+    const double D = x.D;
+    const double delta = x.delta;
+
+//    LinModelMatrix lin_model_c;
+    A_MPC A_c = A_MPC::Zero();
+    B_MPC B_c = B_MPC::Zero();
+    g_MPC g_c = g_MPC::Zero();
+    
+    const StateVector f = getF(x,u);
+
+    const double F_x = param_.Cm1*D - param_.Cm2*D*vx;
+
+    // Derivatives of function
+    // f1 = v_x*std::cos(phi) - v_y*std::sin(phi)
+    const double df1_dphi = -vx*std::sin(phi) - vy*std::cos(phi);
+    const double df1_dvx  = std::cos(phi);
+    const double df1_dvy  = -std::sin(phi);
+
+    // f2 = v_y*std::cos(phi) + v_x*std::sin(phi);
+    const double df2_dphi = -vy*std::sin(phi) + vx*std::cos(phi);
+    const double df2_dvx  = std::sin(phi);
+    const double df2_dvy  = std::cos(phi);
+
+    // f3 = r;
+    const double df3_dr = 1.0;
+
+    // f4 = F_x / m; F_x = Cm1*D - Cm2*D*vx;
+    const double df4_dvx = - param_.Cm2 * D / param_.m;
+    const double df4_dD = param_.Cm1 / param_.m;
+
+    // f5 = (ddelta * vx + delta * dvx) * (l_r / (l_r + l_f));
+    const double df5_dvx = u.dDelta * (param_.lr / (param_.lf + param_.lr));
+    const double df5_ddelta = (F_x / param_.m) * (param_.lr / (param_.lf + param_.lr));
+    const double df5_dddelta = vx * (param_.lr / (param_.lf + param_.lr));
+
+    // f6 = (ddelta * vx + delta * dvx) * (1 / (l_r + l_f));
+    const double df6_dvx = u.dDelta * (param_.lr / (param_.lf + param_.lr));
+    const double df6_ddelta = (F_x / param_.m) * (param_.lr / (param_.lf + param_.lr));
+    const double df6_dddelta = vx * (param_.lr / (param_.lf + param_.lr));
+
+    // Jacobians
+    // Matrix A
+    // Column 1
+    // all zero
+    // Column 2
+    // all zero
+    // Column 3
+    A_c(0,2) = df1_dphi;
+    A_c(1,2) = df2_dphi;
+    // Column 4
+    A_c(0,3) = df1_dvx;
+    A_c(1,3) = df2_dvx;
+    A_c(3,3) = df4_dvx;
+    A_c(4,3) = df5_dvx;
+    A_c(5,3) = df6_dvx;
+    // Column 5
+    A_c(0,4) = df1_dvy;
+    A_c(1,4) = df2_dvy;
+    // Column 6
+    A_c(2,5) = df3_dr;
+    // Column 7
+    // all zero
+    // Column 8
+    A_c(3,7) = df4_dD;
+    // Column 9
+    A_c(4,8) = df5_ddelta;
+    A_c(5,8) = df6_ddelta;
+    // Column 10
+    A_c(6,9) = 1.0;
+
+    // Matrix B
+    // Column 1
+    B_c(7,0) = 1.0;
+    // Column 2
+    B_c(4,1) = df5_dddelta;
+    B_c(5,1) = df6_dddelta;
+    B_c(8,1) = 1.0;
+    // Column 3
+    B_c(9,2) = 1.0;
+
+    //zero order term
+    g_c = f - A_c*stateToVector(x) - B_c*inputToVector(u);
+
 }
 }

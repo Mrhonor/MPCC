@@ -74,18 +74,29 @@ public:
     TireForcesDerivatives getForceRearDerivatives(const State &x) const;
     FrictionForceDerivatives getForceFrictionDerivatives(const State &x) const;
 
-    StateVector getF(const State &x,const Input &u) const;
+    virtual StateVector getF(const State &x,const Input &u) const;
 
     LinModelMatrix getLinModel(const State &x, const Input &u) const;
 
     Model();
     Model(double Ts,const PathToJson &path);
-private:
-    LinModelMatrix getModelJacobian(const State &x, const Input &u) const;
+protected:
+    virtual LinModelMatrix getModelJacobian(const State &x, const Input &u) const;
     LinModelMatrix discretizeModel(const LinModelMatrix &lin_model_c) const;
 
     Param param_;
     const double Ts_;
 };
+
+class KinematicModel : public Model{
+public:
+    KinematicModel();
+    KinematicModel(double Ts,const PathToJson &path);
+    StateVector getF(const State &x,const Input &u) const;
+protected:
+    LinModelMatrix getModelJacobian(const State &x, const Input &u) const;
+
+};
+
 }
 #endif //MPCC_MODEL_H

@@ -115,7 +115,10 @@ private:
 
     const double Ts_;
 
-    Model model_;
+    // Model model_;
+    // using kinematic model to replace the dynamic model
+    KinematicModel model_;
+
     Integrator integrator_;
     Cost cost_;
     Constraints constraints_;
