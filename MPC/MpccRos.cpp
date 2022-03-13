@@ -47,12 +47,13 @@ void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
         control_msg.data.push_back(mpc_sol.u0.dD);
         control_msg.data.push_back(mpc_sol.u0.dDelta);
         control_msg.data.push_back(mpc_sol.u0.dVs);
-        if(TempSimuEnd < 2999){
+        if(TempSimuEnd < 399){
             control_pub.publish(control_msg);
         }
         else{
             TrackPos track_xy = cur_track.getTrack();
-            plotter.plotSim(log,track_xy);
+            plotter.plotRun(log,track_xy);
+            // plotter.plotSim(log,track_xy);
             isSetTrack = false;
         }
         

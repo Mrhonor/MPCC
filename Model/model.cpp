@@ -406,7 +406,7 @@ LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) 
 
     // f4 = F_x / m; F_x = Cm1*D - Cm2*D*vx;
     const double df4_dvx = - param_.Cm2 * D / param_.m;
-    const double df4_dD = param_.Cm1 / param_.m;
+    const double df4_dD = (param_.Cm1 - param_.Cm2*vx) / param_.m;
 
     // f5 = (ddelta * vx + delta * dvx) * (l_r / (l_r + l_f));
     const double df5_dvx = u.dDelta * (param_.lr / (param_.lf + param_.lr));
@@ -414,9 +414,9 @@ LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) 
     const double df5_dddelta = vx * (param_.lr / (param_.lf + param_.lr));
 
     // f6 = (ddelta * vx + delta * dvx) * (1 / (l_r + l_f));
-    const double df6_dvx = u.dDelta * (param_.lr / (param_.lf + param_.lr));
-    const double df6_ddelta = (F_x / param_.m) * (param_.lr / (param_.lf + param_.lr));
-    const double df6_dddelta = vx * (param_.lr / (param_.lf + param_.lr));
+    const double df6_dvx = u.dDelta * (1 / (param_.lf + param_.lr));
+    const double df6_ddelta = (F_x / param_.m) * (1 / (param_.lf + param_.lr));
+    const double df6_dddelta = vx * (1 / (param_.lf + param_.lr));
 
     // Jacobians
     // Matrix A
