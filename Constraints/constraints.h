@@ -50,7 +50,7 @@ private:
     OneDConstraint getAlphaConstraintFront(const State &x) const;
     C_i_MPC getAlphaConstraintFrontJac(const State &x) const;
 
-    Model model_;
+    KinematicModel model_;
     Param param_;
 };
 }

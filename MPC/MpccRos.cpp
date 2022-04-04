@@ -47,7 +47,7 @@ void MpccRos::ekfStateCallback(const std_msgs::Float64MultiArrayConstPtr& msg){
         control_msg.data.push_back(mpc_sol.u0.dD);
         control_msg.data.push_back(mpc_sol.u0.dDelta);
         control_msg.data.push_back(mpc_sol.u0.dVs);
-        if(TempSimuEnd < 399){
+        if(TempSimuEnd < 699){
             control_pub.publish(control_msg);
         }
         else{

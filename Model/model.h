@@ -62,16 +62,16 @@ struct FrictionForceDerivatives {
 
 class Model {
 public:
-    double getSlipAngleFront(const State &x) const;
+    virtual double getSlipAngleFront(const State &x) const;
     double getSlipAngleRear(const State &x) const;
 
-    TireForces getForceFront(const State &x) const;
-    TireForces getForceRear(const State &x) const;
+    virtual TireForces getForceFront(const State &x) const;
+    virtual TireForces getForceRear(const State &x) const;
     double getForceFriction(const State &x) const;
-    NormalForces getForceNormal(const State &x) const;
+    virtual NormalForces getForceNormal(const State &x) const;
 
     TireForcesDerivatives getForceFrontDerivatives(const State &x) const;
-    TireForcesDerivatives getForceRearDerivatives(const State &x) const;
+    virtual TireForcesDerivatives getForceRearDerivatives(const State &x) const;
     FrictionForceDerivatives getForceFrictionDerivatives(const State &x) const;
 
     virtual StateVector getF(const State &x,const Input &u) const;
@@ -92,6 +92,16 @@ class KinematicModel : public Model{
 public:
     KinematicModel();
     KinematicModel(double Ts,const PathToJson &path);
+
+    
+
+    virtual TireForces getForceFront(const State &x) const;
+    virtual TireForces getForceRear(const State &x) const;
+    
+
+    
+    virtual TireForcesDerivatives getForceRearDerivatives(const State &x) const;
+
     StateVector getF(const State &x,const Input &u) const;
 protected:
     LinModelMatrix getModelJacobian(const State &x, const Input &u) const;
