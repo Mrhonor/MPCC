@@ -25,6 +25,7 @@ Model::Model()
 Model::Model(double Ts,const PathToJson &path)
 :Ts_(Ts),param_(Param(path.param_path))
 {
+
 }
 
 double Model::getSlipAngleFront(const State &x) const
@@ -338,7 +339,7 @@ KinematicModel::KinematicModel():Model(){
 }
 
 KinematicModel::KinematicModel(double Ts,const PathToJson &path):Model(Ts, path){
-
+    param_.Dr = 0.4;
 }
 
 StateVector KinematicModel::getF(const State &x,const Input &u) const{
@@ -463,4 +464,47 @@ LinModelMatrix KinematicModel::getModelJacobian(const State &x, const Input &u) 
 
     return {A_c,B_c,g_c};
 }
+
+
+TireForces KinematicModel::getForceFront(const State &x) const{
+    const double alpha_f = getSlipAngleFront(x);
+    const double F_y = param_.Df * alpha_f;
+    const double F_x = 0.0;
+
+    return {F_y,F_x};
+}
+
+TireForces KinematicModel::getForceRear(const State &x) const{
+    const double alpha_r = getSlipAngleRear(x);
+    const double F_y = param_.Dr * alpha_r;
+    const double F_x = param_.Cm1*x.D - param_.Cm2*x.D*x.vx;// - param_.Cr0 - param_.Cr2*std::pow(x.vx,2.0);
+
+    return {F_y,F_x};
+
+}
+
+TireForcesDerivatives KinematicModel::getForceRearDerivatives(const State &x) const{
+    const double alpha_r = getSlipAngleRear(x);
+    const double vx = x.vx;
+    const double vy = x.vy;
+    const double r  = x.r;
+    const double D  = x.D;
+
+    //F_rx
+    const double dF_x_vx    = -param_.Cm2*D;// - 2.0*param_.Cr2*vx;
+    const double dF_x_vy    = 0.0;
+    const double dF_x_r     = 0.0;
+    const double dF_x_D     = param_.Cm1 - param_.Cm2*vx;
+    const double dF_x_delta = 0.0;
+    // F_ry
+    const double dF_y_vx    = param_.Dr*(vy-param_.lr*r)/(std::pow((-param_.lr*r + vy),2)+std::pow(vx,2));
+
+    const double dF_y_vy    = -param_.Dr/((std::pow((-param_.lr*r + vy),2)+1)*vx);
+    const double dF_y_r     = param_.Dr/((std::pow((-param_.lr*r + vy),2)+1)*vx);
+    const double dF_y_D     = 0.0;
+    const double dF_y_delta = 0.0;
+
+    return {dF_y_vx,dF_y_vy,dF_y_r,dF_y_D,dF_y_delta,dF_x_vx,dF_x_vy,dF_x_r,dF_x_D,dF_x_delta};
+}
+
 }
